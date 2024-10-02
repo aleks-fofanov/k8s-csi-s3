@@ -20,6 +20,10 @@ import (
 	"flag"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
+
+	"golang.org/x/net/context"
 
 	"github.com/yandex-cloud/k8s-csi-s3/pkg/driver"
 )
@@ -36,10 +40,31 @@ var (
 func main() {
 	flag.Parse()
 
-	driver, err := driver.New(*nodeID, *endpoint)
+	ctx := sigCtx()
+
+	drv, err := driver.New(*nodeID, *endpoint)
 	if err != nil {
 		log.Fatal(err)
 	}
-	driver.Run()
+	drv.Run(ctx)
+
 	os.Exit(0)
+}
+
+func sigCtx() context.Context {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go func() {
+		ch := make(chan os.Signal, 1)
+		signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
+
+		<-ch
+		cancel()
+
+		// in case we get a second request to kill, don't gracefully shut down
+		<-ch
+		os.Exit(1)
+	}()
+
+	return ctx
 }

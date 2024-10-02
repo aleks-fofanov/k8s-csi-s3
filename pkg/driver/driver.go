@@ -17,6 +17,8 @@ limitations under the License.
 package driver
 
 import (
+	"context"
+
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/glog"
 
@@ -69,7 +71,7 @@ func (s3 *driver) newNodeServer(d *csicommon.CSIDriver) *nodeServer {
 	}
 }
 
-func (s3 *driver) Run() {
+func (s3 *driver) Run(ctx context.Context) {
 	glog.Infof("Driver: %v ", driverName)
 	glog.Infof("Version: %v ", vendorVersion)
 	// Initialize default library driver
@@ -84,5 +86,14 @@ func (s3 *driver) Run() {
 
 	s := csicommon.NewNonBlockingGRPCServer()
 	s.Start(s3.endpoint, s3.ids, s3.cs, s3.ns)
+
+	go func() {
+		select {
+		case <-ctx.Done():
+			glog.Info("Gracefully stopping gGRPC servers")
+			s.Stop()
+		}
+	}()
+
 	s.Wait()
 }
