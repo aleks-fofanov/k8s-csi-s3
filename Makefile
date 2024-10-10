@@ -14,9 +14,9 @@
 .PHONY: test build container push clean
 
 REGISTRY_NAME=cr.selcloud.ru
-IMAGE_NAME=csi-s3
-REPO=$(REGISTRY_NAME)/$(IMAGE_NAME)
+IMAGE_NAME ?= csi-s3
 VERSION ?= 0.41.1
+REPO=$(REGISTRY_NAME)/$(IMAGE_NAME)
 IMAGE_TAG=$(REPO):$(VERSION)
 
 CWD=$(shell pwd)
